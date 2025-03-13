@@ -6,6 +6,11 @@ import { companyInfo } from "./companyInfo";
 import { IoIosArrowDown } from "react-icons/io";
 import { IoClose } from "react-icons/io5";
 import { TbMessageChatbotFilled } from "react-icons/tb";
+
+// ✅ API URL aur API Key yahan define karein
+const API_URL = "https://your-api-url.com/chat";  // Apni actual API URL dalen
+const API_KEY = "your-secret-api-key";  // Apni actual API Key dalen
+
 const App = () => {
   const chatBodyRef = useRef();
   const [showChatbot, setShowChatbot] = useState(false);
@@ -16,47 +21,50 @@ const App = () => {
       text: companyInfo,
     },
   ]);
+
   const generateBotResponse = async (history) => {
-    // Helper function to update chat history
     const updateHistory = (text, isError = false) => {
       setChatHistory((prev) => [
-        ...prev.filter((msg) => msg.text != "Thinking..."),
+        ...prev.filter((msg) => msg.text !== "Thinking..."),
         { role: "model", text, isError },
       ]);
     };
-    // Format chat history for API request
+
     history = history.map(({ role, text }) => ({ role, parts: [{ text }] }));
+
     const requestOptions = {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_KEY}`,  // ✅ API Key use ho rahi hai
+      },
       body: JSON.stringify({ contents: history }),
     };
+
     try {
-      // Make the API call to get the bot's response
-      const response = await fetch(
-        import.meta.env.VITE_API_URL,
-        requestOptions
-      );
+      const response = await fetch(API_URL, requestOptions);
       const data = await response.json();
+
       if (!response.ok)
-        throw new Error(data?.error.message || "Something went wrong!");
-      // Clean and update chat history with bot's response
+        throw new Error(data?.error?.message || "Something went wrong!");
+
       const apiResponseText = data.candidates[0].content.parts[0].text
         .replace(/\*\*(.*?)\*\*/g, "$1")
         .trim();
+
       updateHistory(apiResponseText);
     } catch (error) {
-      // Update chat history with the error message
       updateHistory(error.message, true);
     }
   };
+
   useEffect(() => {
-    // Auto-scroll whenever chat history updates
     chatBodyRef.current.scrollTo({
       top: chatBodyRef.current.scrollHeight,
       behavior: "smooth",
     });
   }, [chatHistory]);
+
   return (
     <div className={`container ${showChatbot ? "show-chatbot" : ""}`}>
       <button
@@ -109,4 +117,5 @@ const App = () => {
     </div>
   );
 };
+
 export default App;
